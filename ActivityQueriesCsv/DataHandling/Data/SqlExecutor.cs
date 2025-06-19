@@ -17,6 +17,19 @@ namespace DataHandling.Data
             _connectionString = connectionString;
         }
 
+        public async Task<bool> StoredProcedureExistsAsync(string procedureName)
+        {
+            using (var connection = new SqlConnection(_connectionString))
+            {
+                await connection.OpenAsync();
+                var result = await connection.ExecuteScalarAsync<int>(
+                    "SELECT COUNT(1) FROM sys.procedures WHERE Name = @Name",
+                    new { Name = procedureName }
+                );
+                return result > 0;
+            }
+        }
+
         public async Task<List<dynamic>> ExecuteStoredProcedureInBatches(DbRequest request, int pageSize = 100)
         {
             var results = new List<dynamic>();
@@ -55,8 +68,32 @@ namespace DataHandling.Data
                     }
                     catch (SqlException ex)
                     {
-                        if (ex.Number == 50001)
-                            throw new InvalidOperationException("Date range cannot exceed 3 months.", ex);
+                        if (ex.Message.Contains("expects parameter") || ex.Message.Contains("too many arguments"))
+                        {
+                            Console.WriteLine($"Wrong parameters! ---->  ***{ex.Message}***");
+                        }
+                        else
+                        {
+                            switch (ex.Number)
+                            {
+                                case 50001:
+                                    // Business rule: date range too large
+                                    Console.WriteLine($"Date Range Error:  {ex.Message}");
+                                    break;
+                                case 50002:
+                                    // Parameter validation
+                                    Console.WriteLine($"Error: Required params -> {ex.Message}");
+                                    break;
+                                case 50999:
+                                    // Catch-all for unexpected errors from the SP
+                                    Console.WriteLine($"Unexpected database error: {ex.Message}");
+                                    break;
+                                default:
+                                    // Other SQL errors (connection, timeout, etc.)
+                                    Console.WriteLine($"SQL Error ({ex.Number}): {ex.Message}");
+                                    break;
+                            }
+                        }
                         throw;
                     }
                 }
