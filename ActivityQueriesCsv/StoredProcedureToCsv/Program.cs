@@ -1,4 +1,5 @@
-﻿using Dapper;
+﻿using BenchmarkDotNet.Running;
+using Dapper;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Configuration;
 using StoredProcedureToCsv;
@@ -6,6 +7,11 @@ using StoredProcedureToCsv.Faker;
 using System.Data;
 using System.Diagnostics;
 using static System.Net.Mime.MediaTypeNames;
+
+#region Benchmark
+//BenchmarkRunner.Run<CsvGeneratorBenchmarks>();
+//return;
+#endregion
 
 var builder = new ConfigurationBuilder()
     .SetBasePath(Directory.GetCurrentDirectory())
@@ -35,7 +41,7 @@ var connectionString = configuration.GetSection("ConnectionStrings:Default").Val
 //var csv1 = CsvGenerator.ToCsvNuget(result1);
 //File.WriteAllText("funds.csv", csv1);
 
-var fakeRecordsCount = 10000000;
+var fakeRecordsCount = 1000000;
 var stopWatch = new Stopwatch();
 
 Console.WriteLine("Generating fake tickets...");
